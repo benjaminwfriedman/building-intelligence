@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: building-intelligence
+data:
+  # Neo4j Configuration
+  NEO4J_URI: "your-neo4j-aura-uri"
+  NEO4J_USERNAME: "neo4j"
+  
+  # PostgreSQL Configuration (Azure PostgreSQL)
+  POSTGRES_HOST: "your-azure-postgres-host.postgres.database.azure.com"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "building_intelligence"
+  POSTGRES_USER: "your-postgres-username"
+  
+  # JWT Configuration
+  ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+  ALGORITHM: "HS256"
+  
+  # Application Configuration
+  MAX_FILE_SIZE: "10485760"  # 10MB

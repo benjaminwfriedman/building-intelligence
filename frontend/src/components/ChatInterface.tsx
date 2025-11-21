@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface Diagram {
   diagram_id: string;
@@ -15,45 +16,15 @@ interface Message {
 
 interface ChatInterfaceProps {
   diagram: Diagram | null;
-  highlightedComponents?: string[];
-  onComponentHighlight?: (componentIds: string[]) => void;
 }
 
-export default function ChatInterface({ diagram, highlightedComponents = [], onComponentHighlight }: ChatInterfaceProps) {
+export default function ChatInterface({ diagram }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Parse component IDs from text and make them clickable
-  const parseComponentIds = (text: string) => {
-    const componentIdRegex = /\b(c\d+)\b/g;
-    const parts = text.split(componentIdRegex);
-    
-    return parts.map((part, index) => {
-      if (/^c\d+$/.test(part)) {
-        const isHighlighted = highlightedComponents.includes(part);
-        return (
-          <span
-            key={index}
-            className={`cursor-pointer px-1 py-0.5 rounded text-sm font-mono transition-colors ${
-              isHighlighted 
-                ? 'bg-orange-200 text-orange-800 hover:bg-orange-300' 
-                : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-            }`}
-            onClick={() => {
-              onComponentHighlight?.([part]);
-            }}
-            title={`Click to highlight component ${part} on diagram`}
-          >
-            {part}
-          </span>
-        );
-      }
-      return part;
-    });
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -181,7 +152,24 @@ export default function ChatInterface({ diagram, highlightedComponents = [], onC
             }`}>
               {message.role === 'assistant' ? (
                 <div className="prose prose-sm max-w-none">
-                  <div>{parseComponentIds(message.content)}</div>
+                  <ReactMarkdown
+                    components={{
+                      // Preserve markdown elements with proper styling  
+                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-md font-semibold mb-2">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-medium mb-1">{children}</h3>,
+                      p: ({ children }) => <p className="mb-2">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      code: ({ children }) => <code className="bg-gray-100 px-1 rounded text-sm font-mono">{children}</code>,
+                      blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-200 pl-4 italic">{children}</blockquote>,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-sm">{message.content}</p>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 interface Diagram {
   diagram_id: string;
@@ -6,32 +6,15 @@ interface Diagram {
   component_count: number;
 }
 
-interface Component {
-  id: string;
-  badge_number: number;
-  name: string;
-  type: string;
-  position: { x: number; y: number };
-  properties: {
-    material: string;
-    diameter: string;
-    flow_direction: string;
-  };
-}
-
 interface DiagramViewerProps {
   diagram: Diagram | null;
-  highlightedComponents?: string[];
-  onComponentClick?: (componentId: string) => void;
 }
 
-export default function DiagramViewer({ diagram, highlightedComponents = [], onComponentClick }: DiagramViewerProps) {
+export default function DiagramViewer({ diagram }: DiagramViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
 
 
@@ -115,14 +98,12 @@ export default function DiagramViewer({ diagram, highlightedComponents = [], onC
         >
           <img
             ref={imageRef}
-            src={`http://localhost:8000/diagrams/${diagram.diagram_id}/image`}
+            src={`/diagrams/${diagram.diagram_id}/image`}
             alt={diagram.title}
             className="max-w-none shadow-lg border select-none"
             draggable={false}
-            onLoad={(e) => {
-              setImageLoaded(true);
-              const img = e.currentTarget;
-              setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+            onLoad={() => {
+              // Image loaded successfully
             }}
             onError={(e) => {
               console.error('Failed to load diagram image');

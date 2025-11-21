@@ -61,8 +61,8 @@ class DocumentProcessor:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Resize if too large (max 2048x2048 for OpenAI)
-            max_size = (2048, 2048)
+            # Resize to smaller size to reduce payload (max 1024x1024 for better performance)
+            max_size = (1024, 1024)
             if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
                 image.thumbnail(max_size, Image.Resampling.LANCZOS)
                 logger.info(f"Resized image to {image.size}")

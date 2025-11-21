@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploaded-images-pvc
+  namespace: building-intelligence
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write
+  resources:
+    requests:
+      storage: 10Gi  # 10GB for uploaded images
+  storageClassName: managed-premium  # Azure Premium SSD
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: building-intelligence
+spec:
+  accessModes:
+    - ReadWriteOnce  # Single pod read/write
+  resources:
+    requests:
+      storage: 20Gi  # 20GB for PostgreSQL data
+  storageClassName: managed-premium  # Azure Premium SSD

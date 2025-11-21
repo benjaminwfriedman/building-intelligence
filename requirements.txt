@@ -9,3 +9,9 @@ pydantic
 python-dotenv
 aiofiles
 websockets
+bcrypt
+python-jose[cryptography]
+passlib[bcrypt]
+psycopg2-binary
+sqlalchemy
+alembic
