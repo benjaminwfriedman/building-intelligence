@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 class OpenAIClient:
     def __init__(self):
-        self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+        self.client = OpenAI(
+            api_key=Config.OPENAI_API_KEY,
+            base_url="https://api.openai.com/v1"
+        )
         self.gpt5_model = Config.GPT5_MODEL
         self.gpt4o_mini_model = Config.GPT4O_MINI_MODEL
     
@@ -63,6 +66,9 @@ class OpenAIClient:
             user_prompt += f"\n\nAdditional text content extracted from document:\n{text_content[:1000]}"
         
         try:
+            logger.info(f"Making GPT-5 request with model: {self.gpt5_model}")
+            logger.info(f"Image data length: {len(image_base64)} characters")
+            
             response = self.client.chat.completions.create(
                 model=self.gpt5_model,
                 messages=[
@@ -86,32 +92,79 @@ class OpenAIClient:
             )
             
             content = response.choices[0].message.content
-            logger.info(f"Raw GPT-5 response: {content[:500]}...")
+            
+            # Check if content is None or empty
+            if not content:
+                logger.error("GPT-5 returned empty content, trying with simpler prompt")
+                # Try with a simpler, more direct prompt
+                simple_response = self.client.chat.completions.create(
+                    model="gpt-4o",  # Fallback to GPT-4o
+                    messages=[
+                        {"role": "system", "content": "You are an expert in analyzing engineering diagrams. Extract key components and relationships in simple JSON format."},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Analyze this plumbing diagram and list the main components with their connections in JSON format."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{image_base64}",
+                                        "detail": "low"  # Use lower detail for fallback
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    temperature=0.1,
+                    max_completion_tokens=2000
+                )
+                content = simple_response.choices[0].message.content
+                if not content:
+                    raise ValueError("Both GPT-5 and GPT-4o returned empty responses")
+            
+            logger.info(f"Raw GPT-5 response length: {len(content)} characters")
+            logger.info(f"Raw GPT-5 response preview: {content[:200]}...")
             
             # Parse JSON response
             try:
                 # Try to extract JSON from response if wrapped in markdown
-                if "```json" in content:
-                    json_start = content.find("```json") + 7
+                if "```json" in content.lower():
+                    json_start = content.lower().find("```json") + 7
                     json_end = content.find("```", json_start)
-                    json_content = content[json_start:json_end].strip()
+                    if json_end == -1:
+                        # No closing ```, take rest of content
+                        json_content = content[json_start:].strip()
+                    else:
+                        json_content = content[json_start:json_end].strip()
+                    
+                    logger.info(f"Extracted JSON from markdown: {len(json_content)} chars")
                     scene_data = json.loads(json_content)
+                    
                 elif "```" in content:
                     # Handle case where it's wrapped in code blocks without json tag
                     json_start = content.find("```") + 3
                     json_end = content.rfind("```")
-                    json_content = content[json_start:json_end].strip()
+                    if json_end == -1 or json_end <= json_start:
+                        # No closing ```, take rest of content
+                        json_content = content[json_start:].strip()
+                    else:
+                        json_content = content[json_start:json_end].strip()
+                    
+                    logger.info(f"Extracted JSON from code block: {len(json_content)} chars")
                     scene_data = json.loads(json_content)
+                    
                 else:
                     # Try direct parsing
-                    scene_data = json.loads(content)
+                    logger.info("Attempting direct JSON parsing")
+                    scene_data = json.loads(content.strip())
                 
                 logger.info(f"GPT-5 analysis completed: {len(scene_data.get('components', []))} components")
                 return scene_data
                 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse GPT-5 JSON response: {e}")
-                logger.error(f"Content: {content}")
+                logger.error(f"Full content ({len(content)} chars): {content}")
+                logger.error(f"Attempted to parse: {json_content if 'json_content' in locals() else 'direct content'}")
                 raise ValueError(f"Could not parse JSON from GPT-5 response: {e}")
                 
         except Exception as e:

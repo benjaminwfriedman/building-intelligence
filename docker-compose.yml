@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for local development
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: building_intelligence
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      # File Storage
+      STORAGE_DIR: /app/storage
+      
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: building_intelligence
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+      # JWT
+      SECRET_KEY: development-secret-key-change-in-production
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      
+      # External services (replace with your values)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NEO4J_URI: ${NEO4J_URI}
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./SimpleRiser.png:/app/SimpleRiser.png:ro
+      - uploaded_images:/app/storage  # Persistent volume for uploaded images
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"  # Use port 3000 for local development
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  uploaded_images:  # Persistent volume for uploaded image files

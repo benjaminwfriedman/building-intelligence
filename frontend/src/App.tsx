@@ -1,94 +1,106 @@
-import { useState, useEffect } from 'react'
-import DiagramViewer from './components/DiagramViewer'
-import ChatInterface from './components/ChatInterface'
+import { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import BuildingPage from './pages/BuildingPage';
+import ChatPage from './pages/ChatPage';
 
-interface Diagram {
-  diagram_id: string;
-  title: string;
-  component_count: number;
+interface Building {
+  id: number;
+  name: string;
+  address?: string;
+  description?: string;
+  drawing_count: number;
+}
+
+interface Drawing {
+  id: number;
+  filename: string;
+  title?: string;
+  scene_graph_id?: string;
+  created_at: string;
+}
+
+type AppView = 'dashboard' | 'building' | 'chat';
+
+function AppContent() {
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  const handleSelectBuilding = (building: Building) => {
+    setSelectedBuilding(building);
+    setCurrentView('building');
+  };
+
+  const handleSelectDrawing = (drawing: Drawing) => {
+    setSelectedDrawing(drawing);
+    setCurrentView('chat');
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedBuilding(null);
+    setSelectedDrawing(null);
+    setCurrentView('dashboard');
+  };
+
+  const handleBackToBuilding = () => {
+    setSelectedDrawing(null);
+    setCurrentView('building');
+  };
+
+  // Render current view
+  switch (currentView) {
+    case 'dashboard':
+      return <Dashboard onSelectBuilding={handleSelectBuilding} />;
+    
+    case 'building':
+      return selectedBuilding ? (
+        <BuildingPage
+          building={selectedBuilding}
+          onBack={handleBackToDashboard}
+          onSelectDrawing={handleSelectDrawing}
+        />
+      ) : (
+        <Dashboard onSelectBuilding={handleSelectBuilding} />
+      );
+    
+    case 'chat':
+      return selectedBuilding && selectedDrawing ? (
+        <ChatPage
+          building={selectedBuilding}
+          drawing={selectedDrawing}
+          onBack={handleBackToBuilding}
+        />
+      ) : (
+        <Dashboard onSelectBuilding={handleSelectBuilding} />
+      );
+    
+    default:
+      return <Dashboard onSelectBuilding={handleSelectBuilding} />;
+  }
 }
 
 function App() {
-  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
-  const [selectedDiagram, setSelectedDiagram] = useState<Diagram | null>(null);
-  const [highlightedComponents, setHighlightedComponents] = useState<string[]>([]);
-
-  useEffect(() => {
-    // Fetch available diagrams from the backend
-    fetch('http://localhost:8000/diagrams')
-      .then(res => res.json())
-      .then(data => {
-        setDiagrams(data.diagrams);
-        if (data.diagrams.length > 0) {
-          setSelectedDiagram(data.diagrams[0]);
-        }
-      })
-      .catch(err => console.error('Failed to fetch diagrams:', err));
-  }, []);
-
   return (
-    <div className="h-screen bg-gray-100 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Engineering Scene Graph Assistant
-          </h1>
-          {diagrams.length > 1 && (
-            <select 
-              className="border rounded px-3 py-1"
-              value={selectedDiagram?.diagram_id || ''}
-              onChange={(e) => {
-                const diagram = diagrams.find(d => d.diagram_id === e.target.value);
-                if (diagram) setSelectedDiagram(diagram);
-              }}
-            >
-              {diagrams.map(diagram => (
-                <option key={diagram.diagram_id} value={diagram.diagram_id}>
-                  {diagram.title}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        {selectedDiagram && (
-          <p className="text-sm text-gray-600 mt-1">
-            {selectedDiagram.title} • {selectedDiagram.component_count} components
-          </p>
-        )}
-      </div>
-
-      {/* Main Content - Split Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Diagram */}
-        <div className="w-1/2 bg-white border-r">
-          <DiagramViewer 
-            diagram={selectedDiagram}
-            highlightedComponents={highlightedComponents}
-            onComponentClick={(componentId) => {
-              // Toggle highlighting when component badge is clicked
-              setHighlightedComponents(prev => 
-                prev.includes(componentId) 
-                  ? prev.filter(id => id !== componentId)
-                  : [componentId]
-              );
-            }}
-          />
-        </div>
-        
-        {/* Right Panel - Chat */}
-        <div className="w-1/2 bg-gray-50">
-          <ChatInterface 
-            diagram={selectedDiagram}
-            highlightedComponents={highlightedComponents}
-            onComponentHighlight={(componentIds) => {
-              setHighlightedComponents(componentIds);
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  )
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
 export default App
