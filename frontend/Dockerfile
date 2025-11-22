@@ -27,18 +27,10 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Set proper permissions (nginx user already exists)
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
-RUN touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+# Set proper permissions but keep running as root for port 80
+RUN chown -R nginx:nginx /usr/share/nginx/html
 
-# Switch to non-root user
-USER nginx
-
-# Expose port
+# Expose port (run as root to bind to port 80)
 EXPOSE 80
 
 # Health check

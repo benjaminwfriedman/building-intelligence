@@ -15,3 +15,5 @@ passlib[bcrypt]
 psycopg2-binary
 sqlalchemy
 alembic
+azure-storage-blob
+azure-identity

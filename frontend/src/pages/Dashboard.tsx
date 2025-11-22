@@ -33,7 +33,7 @@ export default function Dashboard({ onSelectBuilding }: DashboardProps) {
 
   const fetchBuildings = async () => {
     try {
-      const response = await fetch('http://localhost:8000/buildings', {
+      const response = await fetch('/buildings', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -57,7 +57,7 @@ export default function Dashboard({ onSelectBuilding }: DashboardProps) {
     setIsCreating(true);
 
     try {
-      const response = await fetch('http://localhost:8000/buildings', {
+      const response = await fetch('/buildings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

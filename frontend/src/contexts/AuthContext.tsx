@@ -50,7 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchCurrentUser = async (authToken: string) => {
     try {
-      const response = await fetch('http://localhost:8000/auth/me', {
+      const response = await fetch('/auth/me', {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const register = async (username: string, password: string, email?: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://localhost:8000/auth/register', {
+      const response = await fetch('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

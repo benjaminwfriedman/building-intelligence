@@ -21,7 +21,7 @@ from chat_models import ChatRequest, WebSocketMessage
 from auth_models import User, UserCreate, UserResponse, BuildingCreate, BuildingResponse, DrawingCreate, DrawingResponse, Token, LoginRequest
 from auth_service import auth_service
 from auth_database import auth_db
-from file_storage import file_storage
+from blob_storage import blob_storage
 
 # Configure logging
 logging.basicConfig(
@@ -271,7 +271,7 @@ async def upload_diagram(
                 raise HTTPException(status_code=400, detail="No building found. Please create a building first.")
         
         # Save the uploaded image file
-        file_id, file_path = file_storage.save_uploaded_file(
+        file_id, blob_url = blob_storage.save_uploaded_file(
             file_bytes, 
             file.filename, 
             current_user.id, 
@@ -291,12 +291,12 @@ async def upload_diagram(
             building_id=user_building.id,
             scene_graph_id=scene_graph.diagram_id,
             uploaded_by=current_user.id,
-            file_path=file_path
+            file_path=blob_url
         )
         db.add(drawing)
         db.commit()
         db.refresh(drawing)
-        logger.info(f"Created drawing record: {drawing.id} for building {user_building.id} with file: {file_path}")
+        logger.info(f"Created drawing record: {drawing.id} for building {user_building.id} with blob: {blob_url}")
         
         return {
             "diagram_id": scene_graph.diagram_id,
@@ -496,23 +496,43 @@ async def get_diagram_image(
             else:
                 raise HTTPException(status_code=404, detail="Diagram image not found")
         
-        # Get the actual file path
-        file_path = file_storage.get_file_path(drawing.file_path)
-        
-        if not file_path or not file_path.exists():
+        # Stream blob content directly through backend
+        try:
+            if blob_storage.blob_service_client:
+                # Stream from Azure Blob Storage
+                blob_client = blob_storage.blob_service_client.get_blob_client(
+                    container=blob_storage.container_name,
+                    blob=drawing.file_path.replace(f"https://{blob_storage.account_name}.blob.core.windows.net/{blob_storage.container_name}/", "")
+                )
+                
+                # Download blob content
+                blob_data = blob_client.download_blob().readall()
+                
+                # Determine content type from file extension
+                file_ext = os.path.splitext(drawing.filename)[1].lower()
+                content_type_map = {
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg', 
+                    '.jpeg': 'image/jpeg',
+                    '.pdf': 'application/pdf'
+                }
+                content_type = content_type_map.get(file_ext, 'application/octet-stream')
+                
+                # Return blob content directly
+                from fastapi.responses import Response
+                return Response(content=blob_data, media_type=content_type)
+            else:
+                # Local storage fallback
+                from file_storage import file_storage
+                file_path = file_storage.get_file_path(drawing.file_path)
+                if file_path and file_path.exists():
+                    return FileResponse(str(file_path))
+                else:
+                    raise HTTPException(status_code=404, detail="Image file not found")
+                    
+        except Exception as e:
+            logger.error(f"Error streaming blob content: {e}")
             raise HTTPException(status_code=404, detail="Image file not found")
-        
-        # Determine media type from file extension
-        file_ext = file_path.suffix.lower()
-        media_type_map = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.pdf': 'application/pdf'
-        }
-        media_type = media_type_map.get(file_ext, 'application/octet-stream')
-        
-        return FileResponse(str(file_path), media_type=media_type)
         
     except HTTPException:
         raise

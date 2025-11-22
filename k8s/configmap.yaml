@@ -5,14 +5,14 @@ metadata:
   namespace: building-intelligence
 data:
   # Neo4j Configuration
-  NEO4J_URI: "your-neo4j-aura-uri"
+  NEO4J_URI: "neo4j+s://9f8ada30.databases.neo4j.io"
   NEO4J_USERNAME: "neo4j"
   
-  # PostgreSQL Configuration (Azure PostgreSQL)
-  POSTGRES_HOST: "your-azure-postgres-host.postgres.database.azure.com"
+  # PostgreSQL Configuration (In-cluster PostgreSQL)
+  POSTGRES_HOST: "postgres-service"
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "building_intelligence"
-  POSTGRES_USER: "your-postgres-username"
+  POSTGRES_USER: "postgres"
   
   # JWT Configuration
   ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
@@ -20,3 +20,7 @@ data:
   
   # Application Configuration
   MAX_FILE_SIZE: "10485760"  # 10MB
+  
+  # Azure Blob Storage Configuration
+  AZURE_STORAGE_ACCOUNT_NAME: "hierarchicalbidev"
+  AZURE_STORAGE_CONTAINER_NAME: "uploaded-images"

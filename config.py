@@ -30,6 +30,11 @@ class Config:
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
     ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
     
+    # Azure Blob Storage Configuration
+    AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
+    AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+    AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "uploaded-images")
+    
     # Database URLs
     @property
     def postgres_url(self) -> str:

@@ -38,7 +38,7 @@ export default function BuildingPage({ building, onBack, onSelectDrawing }: Buil
   const fetchDrawings = async () => {
     try {
       // Note: We'll need to add this endpoint to the backend
-      const response = await fetch(`http://localhost:8000/buildings/${building.id}/drawings`, {
+      const response = await fetch(`/buildings/${building.id}/drawings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
